@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>产品列表 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .filters-section {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .category-filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .category-btn {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .category-btn:hover {
+      border-color: #ff6700;
+      color: #ff6700;
+    }
+    .category-btn.active {
+      background: #ff6700;
+      color: #fff;
+      border-color: #ff6700;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>🛍️ 产品列表</h1>
+      
+      <!-- 搜索和筛选 -->
+      <div class="filters-section">
+        <div class="search-bar">
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="搜索产品名称..."
+          />
+          <button class="btn btn-primary" onclick="searchProducts()">搜索</button>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">产品分类：</label>
+          <div class="category-filters" id="categoryFilters">
+            <button class="category-btn active" data-category="">全部</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 产品列表 -->
+      <div class="grid grid-4" id="productsList">
+        <div class="text-center" style="grid-column: 1 / -1; padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showError, debounce } from '../assets/js/utils.js';
+
+    initNavigation();
+
+    let allProducts = [];
+    let currentCategory = '';
+    let searchKeyword = '';
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const categories = await api.get('/products/categories/all');
+        const container = document.getElementById('categoryFilters');
+        
+        categories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.className = 'category-btn';
+          btn.textContent = cat.category_name;
+          btn.dataset.category = cat.category_id;
+          btn.onclick = () => filterByCategory(cat.category_id);
+          container.appendChild(btn);
+        });
+      } catch (error) {
+        console.error('加载分类失败:', error);
+      }
+    }
+
+    // 加载所有产品
+    async function loadProducts() {
+      try {
+        const products = await api.get('/products');
+        allProducts = products;
+        displayProducts(products);
+      } catch (error) {
+        console.error('加载产品失败:', error);
+        showError('加载产品失败');
+      }
+    }
+
+    // 显示产品
+    function displayProducts(products) {
+      const container = document.getElementById('productsList');
+      
+      if (products.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">📦</div>
+            <p class="empty-text">没有找到相关产品</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = products.map(product => `
+        <div class="product-card" onclick="location.href='product-detail.html?id=${product.product_id}'">
+          <img 
+            src="${product.image_url || 'https://via.placeholder.com/300x300?text=' + encodeURIComponent(product.product_name)}" 
+            alt="${product.product_name}"
+            class="product-image"
+            onerror="this.src='https://via.placeholder.com/300x300?text=图片加载失败'"
+          />
+          <div class="product-info">
+            <div class="product-name">${product.product_name}</div>
+            <div class="product-description">${product.description || '暂无描述'}</div>
+            <div class="product-price">${formatPrice(product.price)}</div>
+            <div class="product-stock">库存: ${product.stock_quantity}</div>
+            ${product.category_name ? `<div class="badge badge-secondary" style="margin-bottom: 12px;">${product.category_name}</div>` : ''}
+            <div class="product-actions">
+              <button class="btn btn-primary btn-sm btn-block">查看详情</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 按分类筛选
+    window.filterByCategory = function(categoryId) {
+      currentCategory = categoryId;
+      
+      // 更新按钮状态
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === categoryId);
+      });
+
+      // 筛选产品
+      filterProducts();
+    };
+
+    // 搜索产品
+    window.searchProducts = function() {
+      searchKeyword = document.getElementById('searchInput').value.trim();
+      filterProducts();
+    };
+
+    // 综合筛选
+    function filterProducts() {
+      let filtered = allProducts;
+
+      // 分类筛选
+      if (currentCategory) {
+        filtered = filtered.filter(p => p.category_id == currentCategory);
+      }
+
+      // 关键词搜索
+      if (searchKeyword) {
+        filtered = filtered.filter(p => 
+          p.product_name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          (p.description && p.description.toLowerCase().includes(searchKeyword.toLowerCase()))
+        );
+      }
+
+      displayProducts(filtered);
+    }
+
+    // 搜索框实时搜索（防抖）
+    const debouncedSearch = debounce(() => {
+      searchProducts();
+    }, 500);
+
+    document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchProducts();
+    });
+
+    // 页面加载
+    loadCategories();
+    loadProducts();
+  </script>
+</body>
+</html>

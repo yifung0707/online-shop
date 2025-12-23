@@ -1,0 +1,389 @@
+/* ========================================
+   通用样式 - common.css
+   保持橙红渐变风格
+======================================== */
+
+/* ===== 全局重置与基础样式 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+  background-attachment: fixed;
+  color: #222;
+}
+
+/* ===== 页面布局 ===== */
+.page-container {
+  min-height: 100vh;
+  padding-top: 80px; /* 为固定导航栏留空间 */
+}
+
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ===== 居中容器 ===== */
+.center-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+}
+
+/* ===== 玻璃卡片效果 ===== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 32px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card-large {
+  padding: 48px 40px;
+}
+
+/* ===== 标题 ===== */
+h1 {
+  font-size: 32px;
+  color: #222;
+  margin-bottom: 16px;
+}
+
+h2 {
+  font-size: 24px;
+  color: #222;
+  margin-bottom: 16px;
+}
+
+h3 {
+  font-size: 20px;
+  color: #222;
+  margin-bottom: 12px;
+}
+
+/* ===== 按钮样式 ===== */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+/* 主按钮 */
+.btn-primary {
+  background: #ff6700;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 次要按钮 */
+.btn-secondary {
+  background: rgba(255, 103, 0, 0.1);
+  color: #ff6700;
+  border: 1px solid #ff6700;
+}
+
+.btn-secondary:hover {
+  background: #ff6700;
+  color: #fff;
+}
+
+/* 幽灵按钮 */
+.btn-ghost {
+  background: transparent;
+  color: #ff6700;
+  border: 1px solid #ff6700;
+}
+
+.btn-ghost:hover {
+  background: #ff6700;
+  color: #fff;
+}
+
+/* 危险按钮 */
+.btn-danger {
+  background: #ff5e62;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+
+/* 成功按钮 */
+.btn-success {
+  background: #4caf50;
+  color: #fff;
+}
+
+.btn-success:hover {
+  filter: brightness(1.1);
+}
+
+/* 小按钮 */
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* 大按钮 */
+.btn-lg {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+/* 全宽按钮 */
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* ===== 表单元素 ===== */
+input, textarea, select {
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #ff6700;
+  box-shadow: 0 0 0 3px rgba(255, 103, 0, 0.15);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* ===== 网格布局 ===== */
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Flex 布局 ===== */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-sm { gap: 8px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+
+/* ===== 间距工具类 ===== */
+.mt-sm { margin-top: 8px; }
+.mt-md { margin-top: 16px; }
+.mt-lg { margin-top: 24px; }
+.mt-xl { margin-top: 32px; }
+
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 16px; }
+.mb-lg { margin-bottom: 24px; }
+.mb-xl { margin-bottom: 32px; }
+
+.p-sm { padding: 8px; }
+.p-md { padding: 16px; }
+.p-lg { padding: 24px; }
+.p-xl { padding: 32px; }
+
+/* ===== 文本工具类 ===== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-primary { color: #ff6700; }
+.text-secondary { color: #666; }
+.text-success { color: #4caf50; }
+.text-danger { color: #ff5e62; }
+
+.text-sm { font-size: 14px; }
+.text-md { font-size: 16px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 20px; }
+
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-normal { font-weight: 400; }
+
+/* ===== 消息提示 ===== */
+.message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.message-success {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.message-error {
+  background: rgba(255, 94, 98, 0.1);
+  color: #ff5e62;
+  border: 1px solid #ff5e62;
+}
+
+.message-info {
+  background: rgba(255, 103, 0, 0.1);
+  color: #ff6700;
+  border: 1px solid #ff6700;
+}
+
+/* ===== 加载状态 ===== */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 103, 0, 0.3);
+  border-top-color: #ff6700;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 徽章 ===== */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-primary {
+  background: #ff6700;
+  color: #fff;
+}
+
+.badge-success {
+  background: #4caf50;
+  color: #fff;
+}
+
+.badge-danger {
+  background: #ff5e62;
+  color: #fff;
+}
+
+.badge-secondary {
+  background: #999;
+  color: #fff;
+}
+
+/* ===== 链接 ===== */
+a {
+  color: #ff6700;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: #ff8533;
+}
+
+/* ===== 分割线 ===== */
+hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 24px 0;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 12px;
+  }
+
+  .glass-card {
+    padding: 24px 16px;
+  }
+
+  h1 { font-size: 24px; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 18px; }
+}

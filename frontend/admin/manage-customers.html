@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>客户管理 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .search-bar {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .search-input {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>👥 客户管理</h1>
+
+      <!-- 搜索栏 -->
+      <div class="search-bar">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="search-input" 
+          placeholder="搜索客户用户名或邮箱..."
+        />
+        <button class="btn btn-primary" onclick="searchCustomers()">搜索</button>
+      </div>
+
+      <!-- 客户列表 -->
+      <div class="data-table" id="customersTable">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatDate, showError, debounce } from '../assets/js/utils.js';
+    import { showContentModal } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let allCustomers = [];
+
+    // 加载客户列表
+    async function loadCustomers() {
+      try {
+        const customers = await api.get('/admin/customers');
+        allCustomers = customers;
+        displayCustomers(customers);
+      } catch (error) {
+        console.error('加载客户失败:', error);
+        showError('加载客户失败');
+      }
+    }
+
+    // 显示客户列表
+    function displayCustomers(customers) {
+      const container = document.getElementById('customersTable');
+
+      if (customers.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <p class="empty-text">没有找到客户</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>注册时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers.map(customer => `
+              <tr>
+                <td>${customer.user_id}</td>
+                <td style="font-weight: 600;">${customer.username}</td>
+                <td>${customer.email}</td>
+                <td>${customer.full_name || '-'}</td>
+                <td>${customer.phone || '-'}</td>
+                <td style="font-size: 13px;">${formatDate(customer.created_at)}</td>
+                <td>
+                  <button class="btn btn-primary btn-sm" onclick="viewCustomerDetail(${customer.user_id})">
+                    查看详情
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 搜索客户
+    window.searchCustomers = function() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      
+      if (!keyword) {
+        displayCustomers(allCustomers);
+        return;
+      }
+
+      const filtered = allCustomers.filter(customer => 
+        customer.username.toLowerCase().includes(keyword) ||
+        customer.email.toLowerCase().includes(keyword) ||
+        (customer.full_name && customer.full_name.toLowerCase().includes(keyword))
+      );
+
+      displayCustomers(filtered);
+    };
+
+    // 实时搜索
+    const debouncedSearch = debounce(() => {
+      searchCustomers();
+    }, 500);
+
+    document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchCustomers();
+    });
+
+    // 查看客户详情
+    window.viewCustomerDetail = async function(userId) {
+      try {
+        const customer = await api.get(`/admin/customers/${userId}`);
+        
+        const content = `
+          <div style="line-height: 2;">
+            <p><strong>用户名：</strong>${customer.username}</p>
+            <p><strong>邮箱：</strong>${customer.email}</p>
+            <p><strong>姓名：</strong>${customer.full_name || '未填写'}</p>
+            <p><strong>手机号：</strong>${customer.phone || '未填写'}</p>
+            <p><strong>注册时间：</strong>${formatDate(customer.created_at)}</p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+            <h4 style="margin-bottom: 10px;">统计信息</h4>
+            <p><strong>订单数：</strong>${customer.stats?.total_orders || 0} 个</p>
+            <p><strong>总消费：</strong>¥${parseFloat(customer.stats?.total_spent || 0).toFixed(2)}</p>
+          </div>
+        `;
+
+        showContentModal(content, `👤 客户详情 - ${customer.username}`);
+
+      } catch (error) {
+        showError('加载客户详情失败');
+      }
+    };
+
+    // 页面加载
+    loadCustomers();
+  </script>
+</body>
+</html>

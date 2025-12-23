@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>主页 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .hero-section {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    .hero-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #ff6700;
+      margin-bottom: 16px;
+    }
+    .hero-subtitle {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 32px;
+    }
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .quick-action-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .quick-action-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .quick-action-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .quick-action-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <!-- 欢迎横幅 -->
+      <div class="hero-section">
+        <h1 class="hero-title">🛍️ 欢迎来到 OnlineShop</h1>
+        <p class="hero-subtitle">发现你喜欢的商品，享受购物乐趣</p>
+        <div style="display: flex; gap: 16px; justify-content: center;">
+          <a href="products.html" class="btn btn-primary btn-lg">开始购物</a>
+          <a href="product-history.html" class="btn btn-secondary btn-lg">浏览历史</a>
+        </div>
+      </div>
+
+      <!-- 快速操作 -->
+      <div class="quick-actions">
+        <div class="quick-action-card" onclick="location.href='products.html'">
+          <div class="quick-action-icon">🛍️</div>
+          <div class="quick-action-title">浏览产品</div>
+        </div>
+        <div class="quick-action-card" onclick="location.href='cart.html'">
+          <div class="quick-action-icon">🛒</div>
+          <div class="quick-action-title">购物车</div>
+        </div>
+        <div class="quick-action-card" onclick="location.href='orders.html'">
+          <div class="quick-action-icon">📦</div>
+          <div class="quick-action-title">我的订单</div>
+        </div>
+        <div class="quick-action-card" onclick="location.href='profile.html'">
+          <div class="quick-action-icon">👤</div>
+          <div class="quick-action-title">个人中心</div>
+        </div>
+      </div>
+
+      <!-- 精选产品 -->
+      <div class="section-title">
+        <span>✨ 精选推荐</span>
+        <a href="products.html" style="font-size: 14px; color: #ff6700;">查看更多 →</a>
+      </div>
+      <div class="grid grid-4" id="featuredProducts">
+        <div class="text-center" style="grid-column: 1 / -1; padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showError } from '../assets/js/utils.js';
+
+    // 初始化导航栏
+    initNavigation();
+
+    // 加载精选产品
+    async function loadFeaturedProducts() {
+      try {
+        const products = await api.get('/products?is_featured=true');
+        const container = document.getElementById('featuredProducts');
+        
+        if (products.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <div class="empty-icon">📦</div>
+              <p class="empty-text">暂无精选产品</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = products.slice(0, 8).map(product => `
+          <div class="product-card" onclick="location.href='product-detail.html?id=${product.product_id}'">
+            <img 
+              src="${product.image_url || 'https://via.placeholder.com/300x300?text=' + encodeURIComponent(product.product_name)}" 
+              alt="${product.product_name}"
+              class="product-image"
+              onerror="this.src='https://via.placeholder.com/300x300?text=图片加载失败'"
+            />
+            <div class="product-info">
+              <div class="product-name">${product.product_name}</div>
+              <div class="product-description">${product.description || '暂无描述'}</div>
+              <div class="product-price">${formatPrice(product.price)}</div>
+              <div class="product-stock">库存: ${product.stock_quantity}</div>
+              <div class="product-actions">
+                <button class="btn btn-primary btn-sm btn-block" onclick="event.stopPropagation(); viewProduct(${product.product_id})">
+                  查看详情
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('加载产品失败:', error);
+        document.getElementById('featuredProducts').innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">加载失败，请刷新重试</p>
+          </div>
+        `;
+      }
+    }
+
+    // 查看产品详情
+    window.viewProduct = (productId) => {
+      location.href = `product-detail.html?id=${productId}`;
+    };
+
+    // 页面加载时执行
+    loadFeaturedProducts();
+  </script>
+</body>
+</html>

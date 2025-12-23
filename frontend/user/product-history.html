@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>浏览历史 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="flex-between mb-lg">
+        <h1>📋 浏览历史</h1>
+        <button class="btn btn-secondary" onclick="clearHistory()">
+          清空历史
+        </button>
+      </div>
+
+      <!-- 浏览历史列表 -->
+      <div class="grid grid-4" id="historyList">
+        <div class="text-center" style="grid-column: 1 / -1; padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, formatRelativeTime, showSuccess, showError } from '../assets/js/utils.js';
+    import { showConfirm } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    // 加载浏览历史
+    async function loadHistory() {
+      try {
+        const history = await api.get('/history?limit=50');
+        displayHistory(history);
+      } catch (error) {
+        console.error('加载浏览历史失败:', error);
+        document.getElementById('historyList').innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">加载失败，请刷新重试</p>
+          </div>
+        `;
+      }
+    }
+
+    // 显示浏览历史
+    function displayHistory(history) {
+      const container = document.getElementById('historyList');
+
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">📋</div>
+            <p class="empty-text">还没有浏览记录</p>
+            <a href="products.html" class="btn btn-primary mt-md">去逛逛</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = history.map(item => `
+        <div class="product-card" onclick="location.href='product-detail.html?id=${item.product_id}'">
+          <img 
+            src="${item.image_url || 'https://via.placeholder.com/300x300?text=' + encodeURIComponent(item.product_name)}" 
+            alt="${item.product_name}"
+            class="product-image"
+            onerror="this.src='https://via.placeholder.com/300x300?text=图片加载失败'"
+          />
+          <div class="product-info">
+            <div class="product-name">${item.product_name}</div>
+            <div class="product-description">${item.description || '暂无描述'}</div>
+            <div class="product-price">${formatPrice(item.price)}</div>
+            <div style="font-size: 12px; color: #999; margin-bottom: 12px;">
+              ${formatRelativeTime(item.viewed_at)}
+            </div>
+            ${item.stock_quantity > 0 ? `
+              <div class="product-actions">
+                <button 
+                  class="btn btn-primary btn-sm btn-block" 
+                  onclick="event.stopPropagation(); viewProduct(${item.product_id})"
+                >
+                  再看看
+                </button>
+              </div>
+            ` : `
+              <div class="badge badge-secondary" style="width: 100%; text-align: center;">
+                已售罄
+              </div>
+            `}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 查看产品
+    window.viewProduct = function(productId) {
+      location.href = `product-detail.html?id=${productId}`;
+    };
+
+    // 清空浏览历史
+    window.clearHistory = async function() {
+      const confirmed = await showConfirm(
+        '确定要清空所有浏览历史吗？此操作不可恢复。',
+        '清空确认'
+      );
+      
+      if (!confirmed) return;
+
+      try {
+        await api.delete('/history/clear');
+        showSuccess('浏览历史已清空');
+        loadHistory();
+      } catch (error) {
+        showError(error.message || '清空失败');
+      }
+    };
+
+    // 页面加载
+    loadHistory();
+  </script>
+</body>
+</html>

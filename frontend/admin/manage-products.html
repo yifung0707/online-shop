@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>产品管理 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="flex-between mb-lg">
+        <h1>📦 产品管理</h1>
+        <button class="btn btn-primary" onclick="addProduct()">
+          ➕ 添加产品
+        </button>
+      </div>
+
+      <!-- 产品列表 -->
+      <div class="data-table" id="productsTable">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showSuccess, showError } from '../assets/js/utils.js';
+    import { showFormModal, showConfirm } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let allCategories = [];
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        allCategories = await api.get('/products/categories/all');
+      } catch (error) {
+        console.error('加载分类失败:', error);
+      }
+    }
+
+    // 加载产品列表
+    async function loadProducts() {
+      try {
+        const products = await api.get('/products');
+        displayProducts(products);
+      } catch (error) {
+        console.error('加载产品失败:', error);
+        showError('加载产品失败');
+      }
+    }
+
+    // 显示产品列表
+    function displayProducts(products) {
+      const container = document.getElementById('productsTable');
+
+      if (products.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <p class="empty-text">还没有产品</p>
+            <button class="btn btn-primary mt-md" onclick="addProduct()">添加第一个产品</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>产品名称</th>
+              <th>分类</th>
+              <th>价格</th>
+              <th>库存</th>
+              <th>精选</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${products.map(product => `
+              <tr>
+                <td>${product.product_id}</td>
+                <td style="font-weight: 600;">${product.product_name}</td>
+                <td>${product.category_name || '-'}</td>
+                <td style="color: #ff6700; font-weight: 600;">${formatPrice(product.price)}</td>
+                <td>${product.stock_quantity}</td>
+                <td>
+                  ${product.is_featured ? '<span class="badge badge-primary">是</span>' : '<span class="badge badge-secondary">否</span>'}
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-primary btn-sm" onclick="editProduct(${product.product_id})">
+                      编辑
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.product_id})">
+                      删除
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 添加产品
+    window.addProduct = function() {
+      showFormModal({
+        title: '➕ 添加产品',
+        fields: [
+          { 
+            name: 'product_name', 
+            label: '产品名称', 
+            type: 'text', 
+            required: true,
+            placeholder: '请输入产品名称'
+          },
+          {
+            name: 'category_id',
+            label: '产品分类',
+            type: 'select',
+            required: true,
+            options: [
+              { value: '', label: '请选择分类' },
+              ...allCategories.map(cat => ({
+                value: cat.category_id,
+                label: cat.category_name
+              }))
+            ]
+          },
+          { 
+            name: 'description', 
+            label: '产品描述', 
+            type: 'textarea',
+            placeholder: '请输入产品描述'
+          },
+          { 
+            name: 'price', 
+            label: '价格', 
+            type: 'number', 
+            required: true,
+            min: 0,
+            placeholder: '0.00'
+          },
+          { 
+            name: 'stock_quantity', 
+            label: '库存数量', 
+            type: 'number', 
+            required: true,
+            min: 0,
+            defaultValue: 0
+          },
+          { 
+            name: 'image_url', 
+            label: '图片URL', 
+            type: 'text',
+            placeholder: 'https://example.com/image.jpg'
+          },
+          {
+            name: 'is_featured',
+            label: '是否精选',
+            type: 'select',
+            options: [
+              { value: '0', label: '否' },
+              { value: '1', label: '是' }
+            ]
+          }
+        ],
+        submitText: '添加',
+        onSubmit: async (data) => {
+          try {
+            await api.post('/admin/products', {
+              ...data,
+              is_featured: data.is_featured === '1'
+            });
+            showSuccess('产品添加成功');
+            loadProducts();
+            return true;
+          } catch (error) {
+            showError(error.message || '添加失败');
+            return false;
+          }
+        }
+      });
+    };
+
+    // 编辑产品
+    window.editProduct = async function(productId) {
+      try {
+        const product = await api.get(`/products/${productId}`);
+        
+        showFormModal({
+          title: '✏️ 编辑产品',
+          fields: [
+            { name: 'product_name', label: '产品名称', type: 'text', required: true },
+            {
+              name: 'category_id',
+              label: '产品分类',
+              type: 'select',
+              required: true,
+              options: allCategories.map(cat => ({
+                value: cat.category_id,
+                label: cat.category_name
+              }))
+            },
+            { name: 'description', label: '产品描述', type: 'textarea' },
+            { name: 'price', label: '价格', type: 'number', required: true, min: 0 },
+            { name: 'stock_quantity', label: '库存数量', type: 'number', required: true, min: 0 },
+            { name: 'image_url', label: '图片URL', type: 'text' },
+            {
+              name: 'is_featured',
+              label: '是否精选',
+              type: 'select',
+              options: [
+                { value: '0', label: '否' },
+                { value: '1', label: '是' }
+              ]
+            }
+          ],
+          initialData: {
+            ...product,
+            is_featured: product.is_featured ? '1' : '0'
+          },
+          submitText: '保存',
+          onSubmit: async (data) => {
+            try {
+              await api.put(`/admin/products/${productId}`, {
+                ...data,
+                is_featured: data.is_featured === '1'
+              });
+              showSuccess('产品更新成功');
+              loadProducts();
+              return true;
+            } catch (error) {
+              showError(error.message || '更新失败');
+              return false;
+            }
+          }
+        });
+      } catch (error) {
+        showError('加载产品信息失败');
+      }
+    };
+
+    // 删除产品
+    window.deleteProduct = async function(productId) {
+      const confirmed = await showConfirm('确定要删除这个产品吗？此操作不可恢复！', '删除确认');
+      if (!confirmed) return;
+
+      try {
+        await api.delete(`/admin/products/${productId}`);
+        showSuccess('产品已删除');
+        loadProducts();
+      } catch (error) {
+        showError(error.message || '删除失败');
+      }
+    };
+
+    // 页面加载
+    loadCategories().then(() => loadProducts());
+  </script>
+</body>
+</html>

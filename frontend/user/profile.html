@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>个人中心 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .profile-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .profile-header {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 700;
+      margin: 0 auto 16px;
+    }
+    .profile-sections {
+      display: grid;
+      gap: 24px;
+    }
+    .profile-section {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(255, 103, 0, 0.2);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      color: #666;
+      font-weight: 500;
+    }
+    .info-value {
+      color: #333;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 16px;
+      background: rgba(255, 103, 0, 0.05);
+      border-radius: 8px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ff6700;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="profile-container">
+        <!-- 个人信息头部 -->
+        <div class="profile-header">
+          <div class="profile-avatar" id="userAvatar">U</div>
+          <h2 id="userName">加载中...</h2>
+          <p style="color: #666; margin-top: 8px;" id="userEmail">-</p>
+          <button class="btn btn-primary mt-md" onclick="editProfile()">
+            编辑资料
+          </button>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="profile-section">
+          <div class="section-header">
+            <div class="section-title">📊 我的统计</div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value" id="totalOrders">0</div>
+              <div class="stat-label">总订单</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="totalSpent">¥0</div>
+              <div class="stat-label">总消费</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="totalProducts">0</div>
+              <div class="stat-label">浏览商品</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 基本信息 -->
+        <div class="profile-section">
+          <div class="section-header">
+            <div class="section-title">👤 基本信息</div>
+            <button class="btn btn-secondary btn-sm" onclick="editProfile()">编辑</button>
+          </div>
+          <div id="basicInfo">
+            <div class="info-item">
+              <span class="info-label">用户名：</span>
+              <span class="info-value" id="infoUsername">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">邮箱：</span>
+              <span class="info-value" id="infoEmail">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">姓名：</span>
+              <span class="info-value" id="infoFullName">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">手机号：</span>
+              <span class="info-value" id="infoPhone">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">注册时间：</span>
+              <span class="info-value" id="infoCreatedAt">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="profile-section">
+          <div class="section-header">
+            <div class="section-title">⚡ 快捷操作</div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <button class="btn btn-ghost" onclick="location.href='orders.html'">
+              📦 我的订单
+            </button>
+            <button class="btn btn-ghost" onclick="location.href='product-history.html'">
+              📋 浏览历史
+            </button>
+            <button class="btn btn-ghost" onclick="location.href='cart.html'">
+              🛒 购物车
+            </button>
+            <button class="btn btn-ghost" onclick="changePassword()">
+              🔐 修改密码
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api, getUserInfo } from '../assets/js/api.js';
+    import { formatDate, formatPrice, showSuccess, showError } from '../assets/js/utils.js';
+    import { showFormModal, showPrompt } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let currentUserData = null;
+
+    // 加载用户信息
+    async function loadUserProfile() {
+      try {
+        const userInfo = getUserInfo();
+        currentUserData = userInfo.user;
+
+        // 更新头部
+        document.getElementById('userAvatar').textContent = 
+          (currentUserData.username || 'U')[0].toUpperCase();
+        document.getElementById('userName').textContent = currentUserData.username || '用户';
+        document.getElementById('userEmail').textContent = currentUserData.email || '-';
+
+        // 更新基本信息
+        document.getElementById('infoUsername').textContent = currentUserData.username || '-';
+        document.getElementById('infoEmail').textContent = currentUserData.email || '-';
+        document.getElementById('infoFullName').textContent = currentUserData.full_name || '未填写';
+        document.getElementById('infoPhone').textContent = currentUserData.phone || '未填写';
+        document.getElementById('infoCreatedAt').textContent = 
+          currentUserData.created_at ? formatDate(currentUserData.created_at) : '-';
+
+        // 加载统计数据
+        loadStats();
+
+      } catch (error) {
+        console.error('加载用户信息失败:', error);
+        showError('加载用户信息失败');
+      }
+    }
+
+    // 加载统计数据
+    async function loadStats() {
+      try {
+        // 获取订单统计
+        const orders = await api.get('/orders');
+        const completedOrders = orders.filter(o => o.status !== 'cancelled');
+        const totalSpent = completedOrders.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+
+        document.getElementById('totalOrders').textContent = completedOrders.length;
+        document.getElementById('totalSpent').textContent = formatPrice(totalSpent);
+
+        // 获取浏览历史统计
+        try {
+          const history = await api.get('/history/stats');
+          document.getElementById('totalProducts').textContent = 
+            history.top_products?.length || 0;
+        } catch (e) {
+          console.log('加载浏览统计失败:', e);
+        }
+
+      } catch (error) {
+        console.error('加载统计数据失败:', error);
+      }
+    }
+
+    // 编辑资料（使用模态框）
+    window.editProfile = function() {
+      showFormModal({
+        title: '✏️ 编辑个人资料',
+        fields: [
+          { 
+            name: 'full_name', 
+            label: '姓名', 
+            type: 'text',
+            placeholder: '请输入真实姓名',
+            defaultValue: currentUserData.full_name || ''
+          },
+          { 
+            name: 'phone', 
+            label: '手机号', 
+            type: 'tel',
+            placeholder: '请输入手机号',
+            defaultValue: currentUserData.phone || ''
+          }
+        ],
+        submitText: '保存',
+        onSubmit: async (data) => {
+          try {
+            // 注意：这里需要后端支持更新用户信息的API
+            // 由于当前后端没有这个接口，这里只是演示
+            // await api.put('/user/profile', data);
+            
+            // 临时更新本地数据
+            currentUserData.full_name = data.full_name;
+            currentUserData.phone = data.phone;
+            
+            // 更新显示
+            document.getElementById('infoFullName').textContent = data.full_name || '未填写';
+            document.getElementById('infoPhone').textContent = data.phone || '未填写';
+            
+            showSuccess('资料已更新');
+            return true;
+          } catch (error) {
+            showError(error.message || '更新失败');
+            return false;
+          }
+        }
+      });
+    };
+
+    // 修改密码
+    window.changePassword = async function() {
+      const newPassword = await showPrompt(
+        '请输入新密码（至少6位）',
+        '',
+        '🔐 修改密码'
+      );
+
+      if (!newPassword) return;
+
+      if (newPassword.length < 6) {
+        showError('密码至少需要6位');
+        return;
+      }
+
+      try {
+        // 注意：这里需要后端支持修改密码的API
+        // await api.put('/user/password', { password: newPassword });
+        showSuccess('密码已修改（演示功能）');
+      } catch (error) {
+        showError(error.message || '修改失败');
+      }
+    };
+
+    // 页面加载
+    loadUserProfile();
+  </script>
+</body>
+</html>

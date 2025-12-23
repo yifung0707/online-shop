@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>登录 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* 全屏渐变 */
+    html,body{height:100%;margin:0;background:linear-gradient(135deg,#ff9966 0%,#ff5e62 100%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+    /* 居中玻璃盒 */
+    .glass-card{width:360px;padding:40px 32px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.15);}
+    .glass-card h2{margin:0 0 24px;text-align:center;font-size:24px;color:#222;}
+    .glass-card input{width:100%;margin-bottom:16px;padding:12px 16px;border:1px solid rgba(0,0,0,.1);border-radius:8px;font-size:15px;transition:.2s;box-sizing:border-box;}
+    .glass-card input:focus{outline:none;border-color:#ff6700;box-shadow:0 0 0 3px rgba(255,103,0,.15);}
+    .glass-card button{width:100%;padding:14px;border:none;border-radius:8px;background:#ff6700;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:.2s;}
+    .glass-card button:hover{filter:brightness(1.1);}
+    .glass-card button:disabled{opacity:0.6;cursor:not-allowed;}
+    .glass-card p{margin-top:16px;text-align:center;font-size:14px;color:#666;}
+    .glass-card a{color:#ff6700;text-decoration:none;}
+    .glass-card .back-link{display:inline-block;margin-bottom:16px;color:#666;font-size:14px;}
+    .center-box{display:flex;align-items:center;justify-content:center;height:100%;}
+    .error-msg{color:#ff5e62;font-size:14px;margin-top:8px;text-align:center;}
+  </style>
+</head>
+<body>
+  <div class="center-box">
+    <form id="loginForm" class="glass-card">
+      <a href="index.html" class="back-link">← 返回首页</a>
+      <h2>用户登录</h2>
+      <input name="username" placeholder="用户名或邮箱" required />
+      <input type="password" name="password" placeholder="密码" required />
+      <button type="submit">登 录</button>
+      <div id="errorMsg" class="error-msg"></div>
+      <p>还没有账号？<a href="register.html">立即注册</a></p>
+    </form>
+  </div>
+
+  <script type="module">
+    import { api } from './assets/js/api.js';
+    
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = '登录中...';
+
+      try {
+        const formData = Object.fromEntries(new FormData(e.target));
+        const res = await api.post('/auth/login', formData);
+        
+        // 保存登录信息
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('role', res.user.role);
+        localStorage.setItem('user', JSON.stringify(res.user));
+        
+        // 根据角色跳转
+        if (res.user.role === 'admin') {
+          window.location.href = 'admin/dashboard.html';
+        } else {
+          window.location.href = 'user/home.html';
+        }
+      } catch (error) {
+        errorMsg.textContent = error.message || '登录失败，请检查用户名和密码';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '登 录';
+      }
+    };
+  </script>
+</body>
+</html>

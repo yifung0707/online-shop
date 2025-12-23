@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>管理员仪表盘 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .quick-link-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .quick-link-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .quick-link-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .quick-link-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+    .recent-section {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>📊 管理员仪表盘</h1>
+      <p style="color: #666; margin-bottom: 24px;">欢迎回来，管理员！</p>
+
+      <!-- 统计卡片 -->
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" id="totalSales">¥0</div>
+          <div class="stat-label">总销售额</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-value" id="totalOrders">0</div>
+          <div class="stat-label">总订单数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value" id="totalCustomers">0</div>
+          <div class="stat-label">总客户数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛍️</div>
+          <div class="stat-value" id="totalProducts">0</div>
+          <div class="stat-label">总产品数</div>
+        </div>
+      </div>
+
+      <!-- 快速链接 -->
+      <h2 style="margin-bottom: 16px;">⚡ 快速操作</h2>
+      <div class="quick-links">
+        <div class="quick-link-card" onclick="location.href='manage-products.html'">
+          <div class="quick-link-icon">📦</div>
+          <div class="quick-link-title">产品管理</div>
+        </div>
+        <div class="quick-link-card" onclick="location.href='manage-orders.html'">
+          <div class="quick-link-icon">📋</div>
+          <div class="quick-link-title">订单管理</div>
+        </div>
+        <div class="quick-link-card" onclick="location.href='manage-customers.html'">
+          <div class="quick-link-icon">👥</div>
+          <div class="quick-link-title">客户管理</div>
+        </div>
+        <div class="quick-link-card" onclick="location.href='sales-report.html'">
+          <div class="quick-link-icon">📈</div>
+          <div class="quick-link-title">销售报表</div>
+        </div>
+        <div class="quick-link-card" onclick="location.href='customer-logs.html'">
+          <div class="quick-link-icon">📝</div>
+          <div class="quick-link-title">客户日志</div>
+        </div>
+      </div>
+
+      <!-- 最近订单 -->
+      <div class="recent-section">
+        <h2 style="margin-bottom: 16px;">📋 最近订单</h2>
+        <div id="recentOrders">
+          <div class="text-center" style="padding: 24px;">
+            <div class="loading"></div>
+            <p style="margin-top: 16px; color: #666;">加载中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, formatDate, getOrderStatusText, showError } from '../assets/js/utils.js';
+
+    initNavigation();
+
+    // 加载统计数据
+    async function loadStats() {
+      try {
+        // 获取所有订单
+        const orders = await api.get('/admin/orders');
+        const completedOrders = orders.filter(o => o.status !== 'cancelled');
+        const totalSales = completedOrders.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+
+        document.getElementById('totalSales').textContent = formatPrice(totalSales);
+        document.getElementById('totalOrders').textContent = orders.length;
+
+        // 获取客户数
+        const customers = await api.get('/admin/customers');
+        document.getElementById('totalCustomers').textContent = customers.length;
+
+        // 获取产品数
+        const products = await api.get('/products');
+        document.getElementById('totalProducts').textContent = products.length;
+
+        // 显示最近订单
+        displayRecentOrders(orders.slice(0, 5));
+
+      } catch (error) {
+        console.error('加载统计数据失败:', error);
+        showError('加载统计数据失败');
+      }
+    }
+
+    // 显示最近订单
+    function displayRecentOrders(orders) {
+      const container = document.getElementById('recentOrders');
+
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <p class="empty-text">暂无订单</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="data-table">
+          <table>
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>客户</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orders.map(order => `
+                <tr>
+                  <td>#${order.order_id}</td>
+                  <td>${order.username || order.email || '-'}</td>
+                  <td style="font-weight: 600; color: #ff6700;">${formatPrice(order.total_amount)}</td>
+                  <td>
+                    <span class="order-status ${order.status}">
+                      ${getOrderStatusText(order.status)}
+                    </span>
+                  </td>
+                  <td style="font-size: 13px;">${formatDate(order.created_at)}</td>
+                  <td>
+                    <button 
+                      class="btn btn-primary btn-sm" 
+                      onclick="location.href='manage-orders.html'"
+                    >
+                      查看
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 页面加载
+    loadStats();
+  </script>
+</body>
+</html>

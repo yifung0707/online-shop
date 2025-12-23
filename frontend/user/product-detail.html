@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>产品详情 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .product-detail-container {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    .product-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 32px;
+    }
+    .product-image-large {
+      width: 100%;
+      height: 400px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #f5f5f5;
+      cursor: pointer;
+    }
+    .product-detail-info h1 {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+    .product-detail-price {
+      font-size: 36px;
+      font-weight: 700;
+      color: #ff6700;
+      margin-bottom: 16px;
+    }
+    .product-detail-meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .product-detail-meta .meta-item {
+      font-size: 14px;
+      color: #666;
+    }
+    .product-detail-description {
+      margin-bottom: 24px;
+      line-height: 1.8;
+      color: #666;
+    }
+    .quantity-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .quantity-selector label {
+      font-weight: 500;
+      color: #333;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+    }
+    @media (max-width: 768px) {
+      .product-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div style="margin-bottom: 16px;">
+        <a href="products.html" style="color: #666; font-size: 14px;">← 返回产品列表</a>
+      </div>
+
+      <div class="product-detail-container" id="productDetail">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showSuccess, showError, getUrlParam } from '../assets/js/utils.js';
+    import { showImageModal } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    const productId = getUrlParam('id');
+    let currentProduct = null;
+
+    if (!productId) {
+      location.href = 'products.html';
+    }
+
+    // 加载产品详情
+    async function loadProductDetail() {
+      try {
+        const product = await api.get(`/products/${productId}`);
+        currentProduct = product;
+        
+        // 记录浏览历史
+        try {
+          await api.post(`/history/add`, { product_id: productId });
+        } catch (e) {
+          console.log('记录浏览历史失败:', e);
+        }
+
+        displayProduct(product);
+      } catch (error) {
+        console.error('加载产品详情失败:', error);
+        document.getElementById('productDetail').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">产品不存在或已下架</p>
+            <a href="products.html" class="btn btn-primary mt-md">返回产品列表</a>
+          </div>
+        `;
+      }
+    }
+
+    // 显示产品信息
+    function displayProduct(product) {
+      document.getElementById('productDetail').innerHTML = `
+        <div class="product-detail-grid">
+          <div>
+            <img 
+              src="${product.image_url || 'https://via.placeholder.com/400x400?text=' + encodeURIComponent(product.product_name)}" 
+              alt="${product.product_name}"
+              class="product-image-large"
+              onclick="previewImage(this.src)"
+              onerror="this.src='https://via.placeholder.com/400x400?text=图片加载失败'"
+            />
+          </div>
+
+          <div class="product-detail-info">
+            <h1>${product.product_name}</h1>
+            
+            <div class="product-detail-price">${formatPrice(product.price)}</div>
+
+            <div class="product-detail-meta">
+              <div class="meta-item">
+                <strong>库存：</strong> ${product.stock_quantity} 件
+              </div>
+              ${product.category_name ? `
+                <div class="meta-item">
+                  <strong>分类：</strong> ${product.category_name}
+                </div>
+              ` : ''}
+              ${product.is_featured ? `
+                <div class="badge badge-primary">精选商品</div>
+              ` : ''}
+            </div>
+
+            <div class="product-detail-description">
+              <h3>产品描述</h3>
+              <p>${product.description || '暂无详细描述'}</p>
+            </div>
+
+            <div class="quantity-selector">
+              <label>数量：</label>
+              <button class="quantity-btn" onclick="changeQuantity(-1)">-</button>
+              <input 
+                type="number" 
+                id="quantity" 
+                class="quantity-input" 
+                value="1" 
+                min="1" 
+                max="${product.stock_quantity}"
+              />
+              <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
+            </div>
+
+            <div class="action-buttons">
+              <button 
+                class="btn btn-primary btn-lg" 
+                style="flex: 1;"
+                onclick="addToCart()"
+                ${product.stock_quantity === 0 ? 'disabled' : ''}
+              >
+                ${product.stock_quantity === 0 ? '已售罄' : '🛒 加入购物车'}
+              </button>
+              <button 
+                class="btn btn-success btn-lg" 
+                style="flex: 1;"
+                onclick="buyNow()"
+                ${product.stock_quantity === 0 ? 'disabled' : ''}
+              >
+                ${product.stock_quantity === 0 ? '已售罄' : '⚡ 立即购买'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 修改数量
+    window.changeQuantity = function(delta) {
+      const input = document.getElementById('quantity');
+      let value = parseInt(input.value) + delta;
+      value = Math.max(1, Math.min(value, currentProduct.stock_quantity));
+      input.value = value;
+    };
+
+    // 图片预览
+    window.previewImage = function(src) {
+      showImageModal(src, currentProduct.product_name);
+    };
+
+    // 加入购物车
+    window.addToCart = async function() {
+      const quantity = parseInt(document.getElementById('quantity').value);
+      
+      try {
+        await api.post('/cart/add', {
+          product_id: productId,
+          quantity: quantity
+        });
+        showSuccess(`已添加 ${quantity} 件到购物车`);
+      } catch (error) {
+        showError(error.message || '添加购物车失败');
+      }
+    };
+
+    // 立即购买
+    window.buyNow = async function() {
+      const quantity = parseInt(document.getElementById('quantity').value);
+      
+      try {
+        // 先添加到购物车
+        await api.post('/cart/add', {
+          product_id: productId,
+          quantity: quantity
+        });
+        
+        // 跳转到购物车
+        location.href = 'cart.html';
+      } catch (error) {
+        showError(error.message || '操作失败');
+      }
+    };
+
+    // 页面加载
+    loadProductDetail();
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+/* ========================================
+   导航栏样式 - navigation.css
+   用户和管理员通用导航栏
+======================================== */
+
+/* ===== 导航栏容器 ===== */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.navbar-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+/* ===== Logo ===== */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff6700;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.navbar-brand:hover {
+  transform: scale(1.05);
+  color: #ff6700;
+}
+
+.navbar-brand .logo-icon {
+  font-size: 24px;
+}
+
+/* ===== 导航链接容器 ===== */
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-nav li {
+  margin: 0;
+}
+
+/* ===== 导航链接 ===== */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  color: #666;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  background: rgba(255, 103, 0, 0.1);
+  color: #ff6700;
+}
+
+/* ===== 当前页面高亮 ===== */
+.nav-link.active {
+  background: #ff6700;
+  color: #fff;
+}
+
+.nav-link.active:hover {
+  background: #ff6700;
+  color: #fff;
+  filter: brightness(1.1);
+}
+
+/* ===== 导航链接图标 ===== */
+.nav-link .icon {
+  font-size: 18px;
+}
+
+/* ===== 右侧用户信息 ===== */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 103, 0, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ff6700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #333;
+}
+
+/* ===== 登出按钮 ===== */
+.btn-logout {
+  padding: 8px 16px;
+  background: transparent;
+  color: #ff5e62;
+  border: 1px solid #ff5e62;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: #ff5e62;
+  color: #fff;
+}
+
+/* ===== 移动端汉堡菜单 ===== */
+.navbar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 8px;
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 968px) {
+  .navbar-content {
+    padding: 0 16px;
+  }
+
+  .navbar-toggle {
+    display: block;
+  }
+
+  .navbar-nav {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+  }
+
+  .navbar-nav.active {
+    max-height: 500px;
+  }
+
+  .nav-link {
+    padding: 12px 16px;
+    justify-content: flex-start;
+  }
+
+  .navbar-user {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .user-info {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-brand {
+    font-size: 18px;
+  }
+
+  .navbar-brand .logo-icon {
+    font-size: 20px;
+  }
+
+  .user-name {
+    display: none;
+  }
+}
+
+/* ===== 管理员导航栏特殊样式 ===== */
+.navbar.admin-navbar {
+  background: rgba(50, 50, 50, 0.95);
+}
+
+.navbar.admin-navbar .navbar-brand {
+  color: #ff8533;
+}
+
+.navbar.admin-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.navbar.admin-navbar .nav-link:hover {
+  background: rgba(255, 103, 0, 0.2);
+  color: #fff;
+}
+
+.navbar.admin-navbar .nav-link.active {
+  background: #ff6700;
+  color: #fff;
+}
+
+.navbar.admin-navbar .user-info {
+  background: rgba(255, 103, 0, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.navbar.admin-navbar .user-name {
+  color: #fff;
+}
+
+.navbar.admin-navbar .navbar-toggle {
+  color: #fff;
+}

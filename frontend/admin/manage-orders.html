@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>订单管理 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .filters {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .filter-btn:hover {
+      border-color: #ff6700;
+      color: #ff6700;
+    }
+    .filter-btn.active {
+      background: #ff6700;
+      color: #fff;
+      border-color: #ff6700;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>📋 订单管理</h1>
+
+      <!-- 状态筛选 -->
+      <div class="filters">
+        <button class="filter-btn active" data-status="" onclick="filterOrders('')">
+          全部订单
+        </button>
+        <button class="filter-btn" data-status="unpaid" onclick="filterOrders('unpaid')">
+          待支付
+        </button>
+        <button class="filter-btn" data-status="paid" onclick="filterOrders('paid')">
+          已支付
+        </button>
+        <button class="filter-btn" data-status="shipped" onclick="filterOrders('shipped')">
+          已发货
+        </button>
+        <button class="filter-btn" data-status="delivered" onclick="filterOrders('delivered')">
+          已送达
+        </button>
+        <button class="filter-btn" data-status="cancelled" onclick="filterOrders('cancelled')">
+          已取消
+        </button>
+      </div>
+
+      <!-- 订单列表 -->
+      <div class="data-table" id="ordersTable">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, formatDate, getOrderStatusText, showSuccess, showError } from '../assets/js/utils.js';
+    import { showFormModal } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let allOrders = [];
+    let currentFilter = '';
+
+    // 加载订单
+    async function loadOrders() {
+      try {
+        const orders = await api.get('/admin/orders');
+        allOrders = orders;
+        displayOrders(orders);
+      } catch (error) {
+        console.error('加载订单失败:', error);
+        showError('加载订单失败');
+      }
+    }
+
+    // 显示订单
+    function displayOrders(orders) {
+      const container = document.getElementById('ordersTable');
+
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p class="empty-text">没有找到订单</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>客户</th>
+              <th>金额</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map(order => `
+              <tr>
+                <td style="font-weight: 600;">#${order.order_id}</td>
+                <td>${order.username || order.email || '-'}</td>
+                <td style="color: #ff6700; font-weight: 600;">${formatPrice(order.total_amount)}</td>
+                <td>
+                  <span class="order-status ${order.status}">
+                    ${getOrderStatusText(order.status)}
+                  </span>
+                </td>
+                <td style="font-size: 13px;">${formatDate(order.created_at)}</td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-primary btn-sm" onclick="updateOrderStatus(${order.order_id}, '${order.status}')">
+                      修改状态
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 筛选订单
+    window.filterOrders = function(status) {
+      currentFilter = status;
+      
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === status);
+      });
+
+      const filtered = status 
+        ? allOrders.filter(order => order.status === status)
+        : allOrders;
+      
+      displayOrders(filtered);
+    };
+
+    // 修改订单状态
+    window.updateOrderStatus = function(orderId, currentStatus) {
+      showFormModal({
+        title: `📋 修改订单 #${orderId} 状态`,
+        fields: [
+          {
+            name: 'status',
+            label: '订单状态',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'unpaid', label: '待支付' },
+              { value: 'paid', label: '已支付' },
+              { value: 'shipped', label: '已发货' },
+              { value: 'delivered', label: '已送达' },
+              { value: 'cancelled', label: '已取消' }
+            ]
+          }
+        ],
+        initialData: { status: currentStatus },
+        submitText: '更新',
+        onSubmit: async (data) => {
+          try {
+            await api.put(`/admin/orders/${orderId}/status`, data);
+            showSuccess('订单状态已更新');
+            loadOrders();
+            return true;
+          } catch (error) {
+            showError(error.message || '更新失败');
+            return false;
+          }
+        }
+      });
+    };
+
+    // 页面加载
+    loadOrders();
+  </script>
+</body>
+</html>

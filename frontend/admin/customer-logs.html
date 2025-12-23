@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>客户日志 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .log-filters {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .log-filters label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .log-filters input,
+    .log-filters select {
+      width: 100%;
+      margin: 0;
+      padding: 8px 12px;
+    }
+    .action-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .action-login { background: rgba(76, 175, 80, 0.1); color: #4caf50; }
+    .action-logout { background: rgba(158, 158, 158, 0.1); color: #9e9e9e; }
+    .action-register { background: rgba(156, 39, 176, 0.1); color: #9c27b0; }
+    .action-view_product { background: rgba(33, 150, 243, 0.1); color: #2196f3; }
+    .action-add_to_cart { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
+    .action-purchase { background: rgba(255, 103, 0, 0.1); color: #ff6700; }
+    .action-search { background: rgba(156, 39, 176, 0.1); color: #9c27b0; }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>📝 客户日志</h1>
+
+      <!-- 筛选器 -->
+      <div class="log-filters">
+        <div>
+          <label>行为类型:</label>
+          <select id="actionType">
+            <option value="">全部</option>
+            <option value="login">登录</option>
+            <option value="logout">登出</option>
+            <option value="register">注册</option>
+            <option value="view_product">浏览产品</option>
+            <option value="add_to_cart">加入购物车</option>
+            <option value="purchase">购买</option>
+            <option value="search">搜索</option>
+          </select>
+        </div>
+
+        <div>
+          <label>开始日期:</label>
+          <input type="date" id="startDate" />
+        </div>
+
+        <div>
+          <label>结束日期:</label>
+          <input type="date" id="endDate" />
+        </div>
+
+        <div style="display: flex; align-items: flex-end;">
+          <button class="btn btn-primary btn-block" onclick="loadLogs()">
+            查询
+          </button>
+        </div>
+      </div>
+
+      <!-- 日志列表 -->
+      <div class="data-table" id="logsTable">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatDate, showError } from '../assets/js/utils.js';
+
+    initNavigation();
+
+    // 不设置默认日期，显示所有日志
+    // 如果需要默认筛选，取消下面的注释
+    // const endDate = new Date();
+    // const startDate = new Date();
+    // startDate.setDate(startDate.getDate() - 30); // 最近30天
+    // document.getElementById('startDate').valueAsDate = startDate;
+    // document.getElementById('endDate').valueAsDate = endDate;
+
+    // 行为类型中文映射
+    const actionTypeMap = {
+      'login': '登录',
+      'logout': '登出',
+      'register': '注册',
+      'view_product': '浏览产品',
+      'add_to_cart': '加入购物车',
+      'purchase': '购买',
+      'search': '搜索'
+    };
+
+    // 加载日志
+    window.loadLogs = async function() {
+      const actionType = document.getElementById('actionType').value;
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+
+      console.log('🔍 开始加载日志，筛选条件:', { actionType, start, end });
+
+      try {
+        const params = new URLSearchParams();
+        if (actionType) params.append('action_type', actionType);
+        if (start) params.append('start_date', start);
+        if (end) params.append('end_date', end);
+
+        console.log('📡 请求 URL:', `/admin/customer-logs?${params}`);
+
+        const logs = await api.get(`/admin/customer-logs?${params}`);
+        
+        console.log('✅ 获取到日志数据:', logs.length, '条');
+        console.log('📋 日志数据示例:', logs[0]);
+
+        displayLogs(logs);
+
+      } catch (error) {
+        console.error('❌ 加载日志失败:', error);
+        showError('加载日志失败');
+        
+        const container = document.getElementById('logsTable');
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">加载失败: ${error.message}</p>
+            <button class="btn btn-primary mt-md" onclick="loadLogs()">重试</button>
+          </div>
+        `;
+      }
+    };
+
+    // 显示日志列表
+    function displayLogs(logs) {
+      const container = document.getElementById('logsTable');
+      
+      console.log('🎨 开始渲染日志，数量:', logs.length);
+      console.log('🎨 容器元素:', container);
+
+      if (!logs || logs.length === 0) {
+        console.log('⚠️ 没有日志数据');
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <p class="empty-text">没有找到日志</p>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        const tableHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>用户</th>
+                <th>行为类型</th>
+                <th>详情</th>
+                <th>IP地址</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${logs.map(log => {
+                console.log('📝 处理日志:', log.log_id, log.action_type);
+                return `
+                  <tr>
+                    <td style="font-size: 13px; white-space: nowrap;">${formatDate(log.created_at)}</td>
+                    <td style="font-weight: 600;">${log.username || '未知用户'}</td>
+                    <td>
+                      <span class="action-badge action-${log.action_type}">
+                        ${actionTypeMap[log.action_type] || log.action_type}
+                      </span>
+                    </td>
+                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      ${log.details || '-'}
+                    </td>
+                    <td style="font-size: 13px; color: #999;">${log.ip_address || '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+          <div style="text-align: center; margin-top: 16px; color: #999; font-size: 14px;">
+            共 ${logs.length} 条记录（最多显示 500 条）
+          </div>
+        `;
+
+        container.innerHTML = tableHTML;
+        console.log('✅ 日志表格已渲染完成');
+
+      } catch (error) {
+        console.error('❌ 渲染日志时出错:', error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">渲染失败: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // 页面加载时自动查询
+    console.log('🚀 页面加载完成，开始自动查询日志');
+    loadLogs();
+  </script>
+</body>
+</html>

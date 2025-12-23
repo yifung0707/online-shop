@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>支付订单 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .payment-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .payment-section {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(255, 103, 0, 0.2);
+    }
+    .payment-methods {
+      display: grid;
+      gap: 12px;
+    }
+    .payment-method {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .payment-method:hover {
+      border-color: #ff6700;
+    }
+    .payment-method.selected {
+      border-color: #ff6700;
+      background: rgba(255, 103, 0, 0.05);
+    }
+    .payment-method input[type="radio"] {
+      margin-right: 12px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .payment-method-icon {
+      font-size: 32px;
+      margin-right: 12px;
+    }
+    .payment-method-info {
+      flex: 1;
+    }
+    .payment-method-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    .payment-method-desc {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .order-summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .order-summary-item:last-child {
+      border-bottom: none;
+    }
+    .payment-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 24px;
+      font-weight: 700;
+      color: #ff6700;
+      padding-top: 16px;
+      margin-top: 16px;
+      border-top: 2px solid rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="payment-container">
+        <h1 style="text-align: center; margin-bottom: 32px;">💳 支付订单</h1>
+
+        <!-- 订单信息 -->
+        <div class="payment-section">
+          <div class="section-title">📋 订单信息</div>
+          <div id="orderInfo">
+            <div class="text-center" style="padding: 24px;">
+              <div class="loading"></div>
+              <p style="margin-top: 16px; color: #666;">加载中...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 支付方式 -->
+        <div class="payment-section">
+          <div class="section-title">💳 选择支付方式</div>
+          <div class="payment-methods">
+            <label class="payment-method selected" onclick="selectPaymentMethod('alipay')">
+              <input type="radio" name="payment_method" value="alipay" checked />
+              <div class="payment-method-icon">💰</div>
+              <div class="payment-method-info">
+                <div class="payment-method-name">支付宝</div>
+                <div class="payment-method-desc">使用支付宝账户支付</div>
+              </div>
+            </label>
+
+            <label class="payment-method" onclick="selectPaymentMethod('wechat')">
+              <input type="radio" name="payment_method" value="wechat" />
+              <div class="payment-method-icon">💚</div>
+              <div class="payment-method-info">
+                <div class="payment-method-name">微信支付</div>
+                <div class="payment-method-desc">使用微信扫码支付</div>
+              </div>
+            </label>
+
+            <label class="payment-method" onclick="selectPaymentMethod('credit_card')">
+              <input type="radio" name="payment_method" value="credit_card" />
+              <div class="payment-method-icon">💳</div>
+              <div class="payment-method-info">
+                <div class="payment-method-name">信用卡</div>
+                <div class="payment-method-desc">支持 Visa、MasterCard、银联</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 支付按钮 -->
+        <div class="payment-section">
+          <button 
+            class="btn btn-primary btn-block btn-lg" 
+            id="payBtn"
+            onclick="processPayment()"
+            disabled
+          >
+            确认支付
+          </button>
+          <button 
+            class="btn btn-ghost btn-block mt-md" 
+            onclick="location.href='orders.html'"
+          >
+            返回订单列表
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showSuccess, showError, getUrlParam, showLoading, hideLoading } from '../assets/js/utils.js';
+
+    initNavigation();
+
+    const orderId = getUrlParam('order_id');
+    let selectedPaymentMethod = 'alipay';
+    let orderData = null;
+
+    if (!orderId) {
+      showError('订单ID不存在');
+      setTimeout(() => location.href = 'orders.html', 2000);
+    }
+
+    // 选择支付方式
+    window.selectPaymentMethod = function(method) {
+      selectedPaymentMethod = method;
+      document.querySelectorAll('.payment-method').forEach(el => {
+        el.classList.remove('selected');
+      });
+      event.currentTarget.classList.add('selected');
+    };
+
+    // 加载订单信息
+    async function loadOrderInfo() {
+      try {
+        const order = await api.get(`/orders/${orderId}`);
+        orderData = order;
+
+        if (order.status !== 'unpaid') {
+          showError('该订单已支付或已取消');
+          setTimeout(() => location.href = 'orders.html', 2000);
+          return;
+        }
+
+        displayOrder(order);
+        document.getElementById('payBtn').disabled = false;
+      } catch (error) {
+        console.error('加载订单失败:', error);
+        document.getElementById('orderInfo').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p class="empty-text">订单不存在</p>
+            <a href="orders.html" class="btn btn-primary mt-md">返回订单列表</a>
+          </div>
+        `;
+      }
+    }
+
+    // 显示订单信息
+    function displayOrder(order) {
+      const container = document.getElementById('orderInfo');
+      
+      container.innerHTML = `
+        <div class="order-summary-item">
+          <span style="color: #666;">订单号：</span>
+          <span style="font-weight: 600;">#${order.order_id}</span>
+        </div>
+        <div class="order-summary-item">
+          <span style="color: #666;">下单时间：</span>
+          <span>${new Date(order.created_at).toLocaleString('zh-CN')}</span>
+        </div>
+        <div class="order-summary-item">
+          <span style="color: #666;">配送地址：</span>
+          <span>${order.shipping_address || '待填写'}</span>
+        </div>
+        ${order.items ? `
+          <div style="margin-top: 16px;">
+            <div style="font-weight: 600; margin-bottom: 8px; color: #333;">商品清单：</div>
+            ${order.items.map(item => `
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; color: #666;">
+                <span>${item.product_name} × ${item.quantity}</span>
+                <span>${formatPrice(item.price * item.quantity)}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        <div class="payment-total">
+          <span>应付金额：</span>
+          <span>${formatPrice(order.total_amount)}</span>
+        </div>
+      `;
+    }
+
+    // 处理支付
+    window.processPayment = async function() {
+      if (!orderData) {
+        showError('订单信息不存在');
+        return;
+      }
+
+      const payBtn = document.getElementById('payBtn');
+      payBtn.disabled = true;
+      payBtn.textContent = '处理中...';
+
+      showLoading('正在处理支付...');
+
+      try {
+        // 调用支付接口
+        const result = await api.post('/payment/create', {
+          order_id: orderId,
+          payment_method: selectedPaymentMethod
+        });
+
+        hideLoading();
+        showSuccess('支付成功！');
+
+        // 模拟支付成功后跳转
+        setTimeout(() => {
+          location.href = `orders.html`;
+        }, 2000);
+
+      } catch (error) {
+        hideLoading();
+        showError(error.message || '支付失败，请重试');
+        payBtn.disabled = false;
+        payBtn.textContent = '确认支付';
+      }
+    };
+
+    // 页面加载
+    loadOrderInfo();
+  </script>
+</body>
+</html>

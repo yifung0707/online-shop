@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>购物车 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .cart-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    .cart-summary {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 24px;
+      height: fit-content;
+      position: sticky;
+      top: 80px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 15px;
+      color: #666;
+    }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 16px;
+      margin-top: 16px;
+      border-top: 2px solid rgba(0, 0, 0, 0.1);
+      font-size: 20px;
+      font-weight: 700;
+      color: #ff6700;
+    }
+    .cart-item-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+    }
+    @media (max-width: 968px) {
+      .cart-container {
+        grid-template-columns: 1fr;
+      }
+      .cart-summary {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="flex-between mb-lg">
+        <h1>🛒 购物车</h1>
+        <button class="btn btn-secondary" onclick="clearCart()">清空购物车</button>
+      </div>
+
+      <div class="cart-container">
+        <!-- 购物车商品列表 -->
+        <div id="cartItems">
+          <div class="text-center" style="padding: 48px;">
+            <div class="loading"></div>
+            <p style="margin-top: 16px; color: #666;">加载中...</p>
+          </div>
+        </div>
+
+        <!-- 结算摘要 -->
+        <div class="cart-summary">
+          <h3 style="margin-bottom: 16px;">订单摘要</h3>
+          <div class="summary-row">
+            <span>商品数量：</span>
+            <span id="totalItems">0</span>
+          </div>
+          <div class="summary-row">
+            <span>商品总额：</span>
+            <span id="subtotal">¥0.00</span>
+          </div>
+          <div class="summary-total">
+            <span>合计：</span>
+            <span id="total">¥0.00</span>
+          </div>
+          <button 
+            class="btn btn-primary btn-block btn-lg mt-lg" 
+            id="checkoutBtn"
+            onclick="checkout()"
+            disabled
+          >
+            去结算
+          </button>
+          <a href="products.html" class="btn btn-ghost btn-block mt-md">继续购物</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, showSuccess, showError } from '../assets/js/utils.js';
+    import { showConfirm } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let cartData = [];
+
+    // 加载购物车
+    async function loadCart() {
+      try {
+        const data = await api.get('/cart');
+        cartData = data.items;
+        displayCart(data);
+      } catch (error) {
+        console.error('加载购物车失败:', error);
+        showError('加载购物车失败');
+      }
+    }
+
+    // 显示购物车
+    function displayCart(data) {
+      const container = document.getElementById('cartItems');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+
+      if (data.items.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <p class="empty-text">购物车是空的</p>
+            <a href="products.html" class="btn btn-primary mt-md">去购物</a>
+          </div>
+        `;
+        checkoutBtn.disabled = true;
+        updateSummary(0, 0);
+        return;
+      }
+
+      container.innerHTML = data.items.map(item => `
+        <div class="cart-item">
+          <img 
+            src="${item.image_url || 'https://via.placeholder.com/100x100'}" 
+            alt="${item.product_name}"
+            class="cart-item-image"
+            onerror="this.src='https://via.placeholder.com/100x100?text=图片'"
+          />
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.product_name}</div>
+            <div class="cart-item-price">${formatPrice(item.price)}</div>
+            <div style="font-size: 13px; color: #999; margin-top: 4px;">
+              库存: ${item.stock_quantity}
+            </div>
+            <div class="cart-item-actions">
+              <div class="cart-item-quantity">
+                <button class="quantity-btn" onclick="updateQuantity(${item.cart_id}, ${item.quantity - 1})">-</button>
+                <input 
+                  type="number" 
+                  class="quantity-input" 
+                  value="${item.quantity}" 
+                  min="1"
+                  max="${item.stock_quantity}"
+                  onchange="updateQuantity(${item.cart_id}, this.value)"
+                />
+                <button class="quantity-btn" onclick="updateQuantity(${item.cart_id}, ${item.quantity + 1})">+</button>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="removeItem(${item.cart_id})">删除</button>
+            </div>
+            <div style="margin-top: 8px; font-size: 14px; color: #666;">
+              小计: <strong style="color: #ff6700;">${formatPrice(item.subtotal)}</strong>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      checkoutBtn.disabled = false;
+      updateSummary(data.items.length, data.total);
+    }
+
+    // 更新摘要
+    function updateSummary(itemCount, total) {
+      document.getElementById('totalItems').textContent = itemCount + ' 件';
+      document.getElementById('subtotal').textContent = formatPrice(total);
+      document.getElementById('total').textContent = formatPrice(total);
+    }
+
+    // 更新数量
+    window.updateQuantity = async function(cartId, newQuantity) {
+      newQuantity = parseInt(newQuantity);
+      if (newQuantity < 1) return;
+
+      try {
+        await api.put(`/cart/${cartId}`, { quantity: newQuantity });
+        showSuccess('已更新');
+        loadCart();
+      } catch (error) {
+        showError(error.message || '更新失败');
+      }
+    };
+
+    // 删除商品
+    window.removeItem = async function(cartId) {
+      const confirmed = await showConfirm('确定要删除这个商品吗？', '删除确认');
+      if (!confirmed) return;
+
+      try {
+        await api.delete(`/cart/${cartId}`);
+        showSuccess('已删除');
+        loadCart();
+      } catch (error) {
+        showError(error.message || '删除失败');
+      }
+    };
+
+    // 清空购物车
+    window.clearCart = async function() {
+      if (cartData.length === 0) {
+        showError('购物车已经是空的了');
+        return;
+      }
+
+      const confirmed = await showConfirm('确定要清空购物车吗？', '清空确认');
+      if (!confirmed) return;
+
+      try {
+        await api.delete('/cart');
+        showSuccess('购物车已清空');
+        loadCart();
+      } catch (error) {
+        showError(error.message || '清空失败');
+      }
+    };
+
+    // 去结算
+    window.checkout = async function() {
+      if (cartData.length === 0) {
+        showError('购物车是空的');
+        return;
+      }
+
+      // 跳转到支付页面（先创建订单）
+      try {
+        const result = await api.post('/orders/create', {
+          shipping_address: '待填写' // 实际应该让用户选择地址
+        });
+        
+        showSuccess('订单创建成功');
+        // 跳转到支付页面
+        setTimeout(() => {
+          location.href = `payment.html?order_id=${result.order_id}`;
+        }, 1000);
+      } catch (error) {
+        showError(error.message || '创建订单失败');
+      }
+    };
+
+    // 页面加载
+    loadCart();
+  </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>我的订单 - OnlineShop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <link rel="stylesheet" href="../assets/css/navigation.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    .order-filters {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .filter-btn:hover {
+      border-color: #ff6700;
+      color: #ff6700;
+    }
+    .filter-btn.active {
+      background: #ff6700;
+      color: #fff;
+      border-color: #ff6700;
+    }
+    .order-actions-inline {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <h1>📦 我的订单</h1>
+
+      <!-- 订单状态筛选 -->
+      <div class="order-filters">
+        <button class="filter-btn active" data-status="" onclick="filterOrders('')">
+          全部订单
+        </button>
+        <button class="filter-btn" data-status="unpaid" onclick="filterOrders('unpaid')">
+          待支付
+        </button>
+        <button class="filter-btn" data-status="paid" onclick="filterOrders('paid')">
+          已支付
+        </button>
+        <button class="filter-btn" data-status="shipped" onclick="filterOrders('shipped')">
+          已发货
+        </button>
+        <button class="filter-btn" data-status="delivered" onclick="filterOrders('delivered')">
+          已完成
+        </button>
+        <button class="filter-btn" data-status="cancelled" onclick="filterOrders('cancelled')">
+          已取消
+        </button>
+      </div>
+
+      <!-- 订单列表 -->
+      <div id="ordersList">
+        <div class="text-center" style="padding: 48px;">
+          <div class="loading"></div>
+          <p style="margin-top: 16px; color: #666;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initNavigation } from '../assets/js/navigation.js';
+    import { api } from '../assets/js/api.js';
+    import { formatPrice, formatDate, showSuccess, showError, getOrderStatusText } from '../assets/js/utils.js';
+    import { showConfirm } from '../assets/js/modal.js';
+
+    initNavigation();
+
+    let allOrders = [];
+    let currentFilter = '';
+
+    // 加载订单
+    async function loadOrders() {
+      try {
+        const orders = await api.get('/orders');
+        allOrders = orders;
+        displayOrders(orders);
+      } catch (error) {
+        console.error('加载订单失败:', error);
+        showError('加载订单失败');
+      }
+    }
+
+    // 显示订单
+    function displayOrders(orders) {
+      const container = document.getElementById('ordersList');
+
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <p class="empty-text">还没有订单</p>
+            <a href="products.html" class="btn btn-primary mt-md">去购物</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = orders.map(order => `
+        <div class="order-card">
+          <div class="order-header">
+            <div>
+              <div class="order-id">订单号: #${order.order_id}</div>
+              <div style="font-size: 13px; color: #999; margin-top: 4px;">
+                ${formatDate(order.created_at)}
+              </div>
+            </div>
+            <div class="order-status ${order.status}">
+              ${getOrderStatusText(order.status)}
+            </div>
+          </div>
+
+          ${order.items && order.items.length > 0 ? `
+            <div class="order-items">
+              ${order.items.map(item => `
+                <div class="order-item">
+                  <img 
+                    src="${item.image_url || 'https://via.placeholder.com/60x60'}" 
+                    alt="${item.product_name}"
+                    class="order-item-image"
+                    onerror="this.src='https://via.placeholder.com/60x60?text=图片'"
+                  />
+                  <div class="order-item-info">
+                    <div class="order-item-name">${item.product_name}</div>
+                    <div class="order-item-quantity">数量: ${item.quantity}</div>
+                  </div>
+                  <div class="order-item-price">${formatPrice(item.price)}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div class="order-total">
+            <span>订单总额</span>
+            <span>${formatPrice(order.total_amount)}</span>
+          </div>
+
+          ${order.shipping_address ? `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 0, 0, 0.05); font-size: 14px; color: #666;">
+              <strong>配送地址：</strong>${order.shipping_address}
+            </div>
+          ` : ''}
+
+          <div class="order-actions-inline">
+            ${order.status === 'unpaid' ? `
+              <button class="btn btn-primary btn-sm" onclick="payOrder(${order.order_id})">
+                去支付
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="cancelOrder(${order.order_id})">
+                取消订单
+              </button>
+            ` : ''}
+            ${order.status === 'delivered' ? `
+              <button class="btn btn-success btn-sm" disabled>
+                已完成
+              </button>
+            ` : ''}
+            ${order.status === 'shipped' ? `
+              <button class="btn btn-secondary btn-sm" disabled>
+                配送中...
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 筛选订单
+    window.filterOrders = function(status) {
+      currentFilter = status;
+      
+      // 更新按钮状态
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === status);
+      });
+
+      // 筛选数据
+      const filtered = status 
+        ? allOrders.filter(order => order.status === status)
+        : allOrders;
+      
+      displayOrders(filtered);
+    };
+
+    // 去支付
+    window.payOrder = function(orderId) {
+      location.href = `payment.html?order_id=${orderId}`;
+    };
+
+    // 取消订单
+    window.cancelOrder = async function(orderId) {
+      const confirmed = await showConfirm('确定要取消这个订单吗？', '取消订单');
+      if (!confirmed) return;
+
+      try {
+        await api.put(`/orders/${orderId}/cancel`);
+        showSuccess('订单已取消');
+        loadOrders();
+      } catch (error) {
+        showError(error.message || '取消订单失败');
+      }
+    };
+
+    // 页面加载
+    loadOrders();
+  </script>
+</body>
+</html> 
